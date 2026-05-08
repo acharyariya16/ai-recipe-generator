@@ -29,26 +29,36 @@ export default function App() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ingredients: ingredients.trim() }),
-        }
+        },
       );
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
-      const data = await res.json();
-      const text =
-        data?.recipe ||
-        data?.output ||
-        data?.text ||
-        data?.message ||
-        (typeof data === "string" ? data : JSON.stringify(data));
+      // Handle both plain text and JSON responses
+      const contentType = res.headers.get("content-type");
+      let text;
+      if (contentType && contentType.includes("application/json")) {
+        const data = await res.json();
+        text =
+          data?.recipe ||
+          data?.output ||
+          data?.text ||
+          data?.message ||
+          (typeof data === "string" ? data : JSON.stringify(data));
+      } else {
+        text = await res.text();
+      }
 
       setRecipe(text);
-      setTimeout(() => recipeRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      setTimeout(
+        () => recipeRef.current?.scrollIntoView({ behavior: "smooth" }),
+        100,
+      );
     } catch (err) {
       setError(
         err.message.includes("Failed to fetch")
           ? "Network error — please check your connection and try again."
-          : `Something went wrong: ${err.message}`
+          : `Something went wrong: ${err.message}`,
       );
     } finally {
       setLoading(false);
@@ -128,9 +138,7 @@ export default function App() {
           </div>
         )}
 
-        <footer className="footer">
-          Crafted with ♥ · Powered by AI
-        </footer>
+        <footer className="footer">Crafted with ♥ · Powered by AI</footer>
       </div>
     </div>
   );
